@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java DevOps Demo - CI/CD Pipeline Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .status-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .status-running {
+            background: #10b981;
+            color: white;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.3s;
+        }
+
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .info-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .info-card .value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+
+        .endpoints {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .endpoints h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .endpoint-list {
+            list-style: none;
+        }
+
+        .endpoint-list li {
+            background: #f8f9fa;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .endpoint-method {
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .endpoint-url {
+            font-family: 'Courier New', monospace;
+            color: #333;
+            flex: 1;
+        }
+
+        .endpoint-desc {
+            color: #666;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .try-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            font-weight: bold;
+        }
+
+        .try-btn:hover {
+            transform: scale(1.05);
+            background: #059669;
+        }
+
+        .response-area {
+            margin-top: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+
+        .response-area pre {
+            margin-top: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .timestamp {
+            text-align: center;
+            margin-top: 30px;
+            color: white;
+            font-size: 0.9em;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .loading {
+            animation: pulse 1s infinite;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .metric-card h3 {
+            color: white;
+        }
+
+        .metric-card .value {
+            color: white;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .endpoint-list li {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .try-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Java DevOps Demo Platform</h1>
+            <p>CI/CD Pipeline | Docker | Kubernetes | Spring Boot | Jenkins</p>
+        </div>
+
+        <div class="status-card">
+            <div class="status-badge status-running" id="statusBadge">
+                ✅ System Running
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>📦 Application Version</h3>
+                    <div class="value" id="appVersion">1.0.0</div>
+                </div>
+                <div class="info-card">
+                    <h3>☕ Java Version</h3>
+                    <div class="value" id="javaVersion">Loading...</div>
+                </div>
+                <div class="info-card">
+                    <h3>🕐 Server Time</h3>
+                    <div class="value" id="serverTime">Loading...</div>
+                </div>
+                <div class="info-card metric-card">
+                    <h3>💾 Memory Usage</h3>
+                    <div class="value" id="memoryUsage">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="endpoints">
+            <h2>📡 Available API Endpoints</h2>
+            <ul class="endpoint-list">
+                <li>
+                    <div style="display: flex; align-items: center; flex: 1;">
+                        <span class="endpoint-method">GET</span>
+                        <span class="endpoint-url">/api/status</span>
+                        <span class="endpoint-desc">- Get application status & metrics</span>
+                    </div>
+                    <button class="try-btn" onclick="testEndpoint('/api/status')">Try it →</button>
+                </li>
+                <li>
+                    <div style="display: flex; align-items: center; flex: 1;">
+                        <span class="endpoint-method">GET</span>
+                        <span class="endpoint-url">/api/health</span>
+                        <span class="endpoint-desc">- Health check for K8s liveness probe</span>
+                    </div>
+                    <button class="try-btn" onclick="testEndpoint('/api/health')">Try it →</button>
+                </li>
+                <li>
+                    <div style="display: flex; align-items: center; flex: 1;">
+                        <span class="endpoint-method">GET</span>
+                        <span class="endpoint-url">/api/info</span>
+                        <span class="endpoint-desc">- System information & metrics</span>
+                    </div>
+                    <button class="try-btn" onclick="testEndpoint('/api/info')">Try it →</button>
+                </li>
+                <li>
+                    <div style="display: flex; align-items: center; flex: 1;">
+                        <span class="endpoint-method">GET</span>
+                        <span class="endpoint-url">/actuator/health</span>
+                        <span class="endpoint-desc">- Spring Boot actuator health</span>
+                    </div>
+                    <button class="try-btn" onclick="testEndpoint('/actuator/health')">Try it →</button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="endpoints">
+            <h2>🔧 DevOps Pipeline Information</h2>
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>🐳 Docker Image</h3>
+                    <div class="value" style="font-size: 1em;">java-devops-demo:latest</div>
+                </div>
+                <div class="info-card">
+                    <h3>☸️ Kubernetes</h3>
+                    <div class="value" style="font-size: 1em;">3 replicas | LoadBalancer</div>
+                </div>
+                <div class="info-card">
+                    <h3>🔄 CI/CD Pipeline</h3>
+                    <div class="value" style="font-size: 1em;">Jenkins → Docker Hub → K8s</div>
+                </div>
+                <div class="info-card">
+                    <h3>📊 Build Status</h3>
+                    <div class="value" style="font-size: 1em; color: #10b981;">✓ Success</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="responseArea" style="display: none;" class="response-area">
+            <strong>📤 API Response:</strong>
+            <pre id="responseContent"></pre>
+        </div>
+
+        <div class="timestamp">
+            <p>🏗️ Built with Spring Boot 3.1.5 | 🐳 Containerized with Docker | ☸️ Orchestrated by Kubernetes</p>
+            <p style="margin-top: 10px;">📍 Visit <a href="/api/status" style="color: white;">/api/status</a> for JSON response | <a href="/api/info" style="color: white;">/api/info</a> for system metrics</p>
+        </div>
+    </div>
+
+    <script>
+        // Load initial data
+        async function loadInitialData() {
+            await updateServerTime();
+            await loadSystemInfo();
+            await loadMemoryUsage();
+        }
+
+        async function updateServerTime() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                document.getElementById('serverTime').textContent = new Date(data.timestamp).toLocaleString();
+                document.getElementById('javaVersion').textContent = data.javaVersion || '17.0.9';
+            } catch (error) {
+                document.getElementById('serverTime').textContent = new Date().toLocaleString();
+            }
+        }
+
+        async function loadSystemInfo() {
+            try {
+                const response = await fetch('/api/info');
+                const data = await response.json();
+                if (data.javaVersion) {
+                    document.getElementById('javaVersion').textContent = data.javaVersion;
+                }
+            } catch (error) {
+                console.error('Error loading system info:', error);
+            }
+        }
+
+        async function loadMemoryUsage() {
+            try {
+                const response = await fetch('/api/info');
+                const data = await response.json();
+                if (data.memoryUsed) {
+                    document.getElementById('memoryUsage').textContent = data.memoryUsed;
+                } else {
+                    document.getElementById('memoryUsage').textContent = 'Loading...';
+                }
+            } catch (error) {
+                document.getElementById('memoryUsage').textContent = 'N/A';
+            }
+        }
+
+        async function testEndpoint(endpoint) {
+            const responseArea = document.getElementById('responseArea');
+            const responseContent = document.getElementById('responseContent');
+            
+            responseArea.style.display = 'block';
+            responseContent.innerHTML = '<span class="loading">⏳ Loading response...</span>';
+            
+            try {
+                const startTime = performance.now();
+                const response = await fetch(endpoint);
+                const endTime = performance.now();
+                const data = await response.json();
+                
+                const responseTime = (endTime - startTime).toFixed(2);
+                
+                responseContent.innerHTML = JSON.stringify(data, null, 2) + 
+                    `\n\n// Response time: ${responseTime}ms\n// Status: ${response.status} ${response.statusText}`;
+                
+                // Auto scroll to response
+                responseArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (error) {
+                responseContent.innerHTML = `❌ Error: ${error.message}\n\nMake sure the application is running properly.`;
+            }
+        }
+
+        // Refresh time every second
+        setInterval(updateServerTime, 1000);
+        
+        // Refresh memory every 5 seconds
+        setInterval(loadMemoryUsage, 5000);
+        
+        // Load initial data when page loads
+        loadInitialData();
+    </script>
+</body>
+</html>

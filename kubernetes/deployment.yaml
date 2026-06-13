@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-devops-demo
+  namespace: default
+  labels:
+    app: java-devops-demo
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: java-devops-demo
+  template:
+    metadata:
+      labels:
+        app: java-devops-demo
+        version: v1
+    spec:
+      containers:
+      - name: app
+        image: your-dockerhub/java-devops-demo:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: JAVA_OPTS
+          value: "-Xmx512m -Xms256m"
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: java-devops-demo
+  labels:
+    app: java-devops-demo
+spec:
+  selector:
+    app: java-devops-demo
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  type: LoadBalancer
+  sessionAffinity: None
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: java-devops-demo-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: java-devops-demo
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
